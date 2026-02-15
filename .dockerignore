@@ -1,0 +1,10 @@
+bin/
+obj/
+Logs/
+StoreApi.Tests/
+*.user
+*.suo
+.vs/
+.vscode/
+**/.git
+**/node_modules

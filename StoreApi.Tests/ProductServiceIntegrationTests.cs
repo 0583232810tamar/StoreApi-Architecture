@@ -10,10 +10,7 @@ using StoreApi.Services;
 
 namespace StoreApi.Tests;
 
-/// <summary>
-/// Integration tests that test the full flow from Service -> Repository -> Database
-/// Using In-Memory database instead of mocking
-/// </summary>
+
 [Trait("Category", "Integration")]
 public class ProductServiceIntegrationTests : IDisposable
 {

@@ -61,10 +61,14 @@ public class StringHelper
     }
 }
 
-public class UnitTest1
+/// <summary>
+/// Example tests demonstrating XUnit best practices with and without mocking.
+/// </summary>
+[Trait("Category", "Unit")]
+public class MathServiceTests
 {
     [Fact]
-    public void Add_ShouldReturnCorrectSum()
+    public void CalculateSum_ShouldReturnCorrectSum()
     {
         // Arrange - Setup mock
         var mockCalculator = new Mock<ICalculator>();
@@ -81,7 +85,7 @@ public class UnitTest1
     }
 
     [Fact]
-    public void Multiply_ShouldReturnCorrectProduct()
+    public void CalculateProduct_ShouldReturnCorrectProduct()
     {
         // Arrange
         var mockCalculator = new Mock<ICalculator>();
@@ -109,55 +113,51 @@ public class UnitTest1
         // Assert
         mockCalculator.Verify(x => x.Add(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
     }
+}
 
-    // Tests without mocks - testing pure logic
+/// <summary>
+/// Tests for StringHelper demonstrating data-driven testing with [Theory] and [InlineData].
+/// </summary>
+[Trait("Category", "Unit")]
+public class StringHelperTests
+{
+    private readonly StringHelper _helper = new();
+
     [Fact]
     public void Reverse_ShouldReverseString()
     {
-        // Arrange
-        var helper = new StringHelper();
-
-        // Act
-        var result = helper.Reverse("hello");
+        // Arrange & Act
+        var result = _helper.Reverse("hello");
 
         // Assert
         Assert.Equal("olleh", result);
     }
 
-    [Fact]
-    public void IsPalindrome_ShouldReturnTrue_ForPalindromeString()
+    [Theory]
+    [InlineData("racecar", true)]
+    [InlineData("Madam", true)]
+    [InlineData("A", true)]
+    [InlineData("hello", false)]
+    [InlineData("world", false)]
+    public void IsPalindrome_WithVariousInputs_ReturnsExpectedResult(string input, bool expected)
     {
-        // Arrange
-        var helper = new StringHelper();
-
-        // Act & Assert
-        Assert.True(helper.IsPalindrome("racecar"));
-        Assert.True(helper.IsPalindrome("Madam"));
-        Assert.True(helper.IsPalindrome("A"));
-    }
-
-    [Fact]
-    public void IsPalindrome_ShouldReturnFalse_ForNonPalindromeString()
-    {
-        // Arrange
-        var helper = new StringHelper();
-
-        // Act & Assert
-        Assert.False(helper.IsPalindrome("hello"));
-        Assert.False(helper.IsPalindrome("world"));
-    }
-
-    [Fact]
-    public void CountVowels_ShouldReturnCorrectCount()
-    {
-        // Arrange
-        var helper = new StringHelper();
-
         // Act
-        var result = helper.CountVowels("hello world");
+        var result = _helper.IsPalindrome(input);
 
         // Assert
-        Assert.Equal(3, result);
+        Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void IsPalindrome_WithEmptyOrNull_ReturnsFalse(string? input, bool expected)
+    {
+        // Act
+        var result = _helper.IsPalindrome(input!);
+
+        // Assert
+        Assert.Equal(expected, result);
     }
 
     [Theory]
@@ -166,13 +166,42 @@ public class UnitTest1
     [InlineData("aeiou", 5)]
     [InlineData("AEIOU", 5)]
     [InlineData("Programming", 3)]
+    [InlineData("hello world", 3)]
     public void CountVowels_VariousInputs_ShouldReturnCorrectCount(string input, int expected)
+    {
+        // Act
+        var result = _helper.CountVowels(input);
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+}
+
+/// <summary>
+/// Demonstrates [MemberData] for complex test data that can't fit in InlineData.
+/// </summary>
+[Trait("Category", "Unit")]
+public class MemberDataExampleTests
+{
+    public static IEnumerable<object[]> ReverseTestData =>
+        new List<object[]>
+        {
+            new object[] { "hello", "olleh" },
+            new object[] { "world", "dlrow" },
+            new object[] { "12345", "54321" },
+            new object[] { "", "" },
+            new object[] { "a", "a" }
+        };
+
+    [Theory]
+    [MemberData(nameof(ReverseTestData))]
+    public void Reverse_WithMemberData_ReturnsExpectedResult(string input, string expected)
     {
         // Arrange
         var helper = new StringHelper();
 
         // Act
-        var result = helper.CountVowels(input);
+        var result = helper.Reverse(input);
 
         // Assert
         Assert.Equal(expected, result);

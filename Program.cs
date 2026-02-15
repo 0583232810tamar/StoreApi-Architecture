@@ -63,7 +63,11 @@ builder.Services.AddSwaggerGen(options =>
 
 // Database Context
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
+        sqlOptions => sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorNumbersToAdd: null)));
 
 // Register DapperContext for ADO.NET/Dapper repositories
 builder.Services.AddSingleton<DapperContext>();
@@ -137,6 +141,14 @@ builder.Services.AddControllers()
     });
 
 var app = builder.Build();
+
+// Auto-apply pending migrations on startup
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
+    Log.Information("Database migrations applied successfully");
+}
 
 // Configure the HTTP request pipeline
 
