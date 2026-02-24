@@ -175,6 +175,7 @@ Exception: `DapperContext` is Singleton because it's stateless.
 - **Circular reference handling**: Configured in `Program.cs` with `ReferenceHandler.IgnoreCycles`
 - **Partial class Program**: `public partial class Program { }` at end of `Program.cs` enables testing
 - **Security**: JWT secret stored in `appsettings.json` (should be moved to user secrets/env vars for production)
+-- **code style**: Follow C# conventions (PascalCase for types/methods, camelCase for variables/parameters) dont write comments in code. dont write duplicate code. use helper methods for repeated logic (e.g., DTO mapping). avoid magic strings/numbers - use constants or enums. always handle nulls gracefully (e.g., `?.` operator, null-coalescing `??`).
 
 ## Existing Instruction Files
 
@@ -182,3 +183,5 @@ Follow these project-specific rules:
 - `.github/instructions/dotnetInstruction.instructions.md` - comprehensive architecture guide
 - `.github/instructions/logging try catch.instructions.md` - exception and logging rules
 - `vscode-userdata:/.../design_system_rules.md.instructions.md` - UI/frontend conventions (if applicable)
+
+

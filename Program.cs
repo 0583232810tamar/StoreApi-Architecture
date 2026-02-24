@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using StackExchange.Redis;
 using StoreApi.Data;
 using StoreApi.Interfaces;
 using StoreApi.Repositories;
@@ -72,6 +73,29 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Register DapperContext for ADO.NET/Dapper repositories
 builder.Services.AddSingleton<DapperContext>();
 
+// Register Redis
+// IConnectionMultiplexer is the low-level connection used by:
+//   - CacheService (pattern-based key invalidation via SCAN)
+//   - RateLimitingMiddleware (atomic INCR counters — works across replicas)
+// AbortOnConnectFail=false lets the app start even if Redis is temporarily unavailable.
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+var redisConfig = ConfigurationOptions.Parse(redisConnectionString);
+redisConfig.AbortOnConnectFail = false;
+var redisMultiplexer = ConnectionMultiplexer.Connect(redisConfig);
+builder.Services.AddSingleton<IConnectionMultiplexer>(redisMultiplexer);
+
+// AddStackExchangeRedisCache registers IDistributedCache backed by Redis.
+// InstanceName prefixes every key ("StoreApi:products:all") to namespace
+// this app's keys from other apps sharing the same Redis instance.
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.ConnectionMultiplexerFactory = () => Task.FromResult((IConnectionMultiplexer)redisMultiplexer);
+    options.InstanceName = builder.Configuration.GetValue<string>("Cache:InstanceName", "StoreApi:");
+});
+
+// CacheService is Singleton: IDistributedCache and IConnectionMultiplexer are both thread-safe singletons.
+builder.Services.AddSingleton<ICacheService, CacheService>();
+
 // Register Repositories (Scoped - one instance per request)
 // Note: Choose ONE implementation for IProductRepository:
 //   - ProductRepository: Uses Entity Framework Core (default)
@@ -86,11 +110,26 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 
 // Register Services (Scoped - one instance per request)
-builder.Services.AddScoped<ICategoryService, CategoryService>();
-builder.Services.AddScoped<IProductService, ProductService>();
+// Concrete types are registered first so the cached decorators can resolve the inner service.
+builder.Services.AddScoped<CategoryService>();
+builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+
+// Cached decorators wrap the concrete services and implement the same interface.
+// Controllers depend on IProductService / ICategoryService and transparently get caching.
+builder.Services.AddScoped<ICategoryService>(sp => new CachedCategoryService(
+    sp.GetRequiredService<CategoryService>(),
+    sp.GetRequiredService<ICacheService>(),
+    sp.GetRequiredService<ILogger<CachedCategoryService>>(),
+    sp.GetRequiredService<IConfiguration>()));
+
+builder.Services.AddScoped<IProductService>(sp => new CachedProductService(
+    sp.GetRequiredService<ProductService>(),
+    sp.GetRequiredService<ICacheService>(),
+    sp.GetRequiredService<ILogger<CachedProductService>>(),
+    sp.GetRequiredService<IConfiguration>()));
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
