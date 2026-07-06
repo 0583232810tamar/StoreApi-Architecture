@@ -95,15 +95,8 @@ public class ProductsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ProductResponseDto>> Create([FromBody] ProductCreateDto createDto)
     {
-        try
-        {
-            var product = await _productService.CreateProductAsync(createDto);
-            return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        var product = await _productService.CreateProductAsync(createDto);
+        return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
     }
     
     [HttpPut("{id}")]
@@ -115,21 +108,14 @@ public class ProductsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ProductResponseDto>> Update(int id, [FromBody] ProductUpdateDto updateDto)
     {
-        try
+        var product = await _productService.UpdateProductAsync(id, updateDto);
+        
+        if (product == null)
         {
-            var product = await _productService.UpdateProductAsync(id, updateDto);
-            
-            if (product == null)
-            {
-                return NotFound(new { message = $"Product with ID {id} not found." });
-            }
-            
-            return Ok(product);
+            return NotFound(new { message = $"Product with ID {id} not found." });
         }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        
+        return Ok(product);
     }
     
     [HttpDelete("{id}")]

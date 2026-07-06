@@ -11,6 +11,9 @@
     <Compile Remove="StoreApi.Tests/**" />
     <EmbeddedResource Remove="StoreApi.Tests/**" />
     <None Remove="StoreApi.Tests/**" />
+    <Compile Remove="Microservices/**" />
+    <EmbeddedResource Remove="Microservices/**" />
+    <None Remove="Microservices/**" />
   </ItemGroup>
 
   <ItemGroup>
