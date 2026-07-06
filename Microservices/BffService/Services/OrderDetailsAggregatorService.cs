@@ -20,9 +20,8 @@ public class OrderDetailsAggregatorService : IOrderDetailsAggregatorService
         var orderClient = _httpClientFactory.CreateClient("OrderService");
         var productClient = _httpClientFactory.CreateClient("ProductCatalogService");
 
-        var orderTask = orderClient.GetFromJsonAsync<UpstreamOrderResponseDto>($"/api/orders/{orderId}", cancellationToken);
-        var productsTask = productClient.GetFromJsonAsync<IReadOnlyCollection<UpstreamProductResponseDto>>("/api/products", cancellationToken);
-
+    var orderTask = orderClient.GetFromJsonAsync<UpstreamOrderResponseDto>($"{orderClient.BaseAddress}api/Orders/{orderId}", cancellationToken);
+var productsTask = productClient.GetFromJsonAsync<IReadOnlyCollection<UpstreamProductResponseDto>>($"{productClient.BaseAddress}api/Products", cancellationToken);
         await Task.WhenAll(orderTask, productsTask);
 
         var order = await orderTask;
