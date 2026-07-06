@@ -25,11 +25,11 @@ graph TD
     end
 
     subgraph Core Monolith / Service
-        StoreApi[StoreApi Core :5124<br/>Auth, Users, Categories]
+        StoreApi[StoreApi Core :5124<br/>Auth, Users]
     end
 
     subgraph Microservices
-        ProductCatalog[Product Catalog Service :5210]
+        ProductCatalog[Product Catalog Service :5210<br/>Products, Categories]
         OrderService[Order Service :5212]
         InventoryService[Inventory Service :5211]
         NotificationService[Notification Service :5213]
@@ -46,15 +46,14 @@ graph TD
     end
 
     Client --> APIGateway
-    Client --> BFF
-    
-    BFF --> APIGateway
 
-    APIGateway -- "/api/products/*" --> ProductCatalog
-    APIGateway -- "/api/orders/*" --> OrderService
     APIGateway -- "/api/auth/*, /api/users/*" --> StoreApi
-    APIGateway -- "/api/categories/*" --> ProductCatalog
-    APIGateway -- "/api/notifications/*" --> NotificationService
+    APIGateway -- "/api/products/*, /api/categories/*" --> ProductCatalog
+    APIGateway -- "/api/orders/*" --> OrderService
+    APIGateway -- "/api/bff/*" --> BFF
+
+    BFF -- "direct HTTP call" --> OrderService
+    BFF -- "direct HTTP call" --> ProductCatalog
 
     StoreApi --> MainDb
     StoreApi --> RedisDb
