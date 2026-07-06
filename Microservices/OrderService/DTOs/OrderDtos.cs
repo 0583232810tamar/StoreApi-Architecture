@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace OrderService.DTOs;
 
@@ -26,6 +27,7 @@ public class CreateOrderItemDto
 
 public class OrderResponseDto
 {
+    [JsonPropertyName("id")]
     public string OrderId { get; set; } = string.Empty;
     public string CustomerId { get; set; } = string.Empty;
     public DateTime OrderDate { get; set; }

@@ -1,15 +1,26 @@
+using OrderService.DTOs;
+
 namespace OrderService.Services;
 
 public class OrderStateStore
 {
-    private readonly Dictionary<string, string> _orderStatuses = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, OrderResponseDto> _orders = new(StringComparer.OrdinalIgnoreCase);
 
-    public void MarkPlaced(string orderId) => _orderStatuses[orderId] = "Placed";
-
-    public void Cancel(string orderId, string reason) => _orderStatuses[orderId] = $"Cancelled: {reason}";
-
-    public string? GetStatus(string orderId)
+    public void SaveOrder(OrderResponseDto order)
     {
-        return _orderStatuses.TryGetValue(orderId, out var status) ? status : null;
+        _orders[order.OrderId] = order;
+    }
+
+    public void Cancel(string orderId, string reason)
+    {
+        if (_orders.TryGetValue(orderId, out var order))
+        {
+            order.Status = $"Cancelled: {reason}";
+        }
+    }
+
+    public OrderResponseDto? GetOrder(string orderId)
+    {
+        return _orders.TryGetValue(orderId, out var order) ? order : null;
     }
 }

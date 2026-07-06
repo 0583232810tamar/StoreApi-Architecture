@@ -4,6 +4,7 @@ using OrderService.Contracts;
 using OrderService.DTOs;
 using OrderService.Infrastructure;
 using OrderService.Middleware;
+using OrderService.Services;
 
 namespace OrderService.Controllers;
 
@@ -13,13 +14,28 @@ public class OrdersController : ControllerBase
 {
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly ICorrelationIdAccessor _correlationIdAccessor;
+    private readonly OrderStateStore _orderStateStore;
     private readonly ILogger<OrdersController> _logger;
 
-    public OrdersController(IPublishEndpoint publishEndpoint, ICorrelationIdAccessor correlationIdAccessor, ILogger<OrdersController> logger)
+    public OrdersController(IPublishEndpoint publishEndpoint, ICorrelationIdAccessor correlationIdAccessor, OrderStateStore orderStateStore, ILogger<OrdersController> logger)
     {
         _publishEndpoint = publishEndpoint;
         _correlationIdAccessor = correlationIdAccessor;
+        _orderStateStore = orderStateStore;
         _logger = logger;
+    }
+
+    [HttpGet("{orderId}")]
+    [ProducesResponseType(typeof(OrderResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public ActionResult<OrderResponseDto> GetById(string orderId)
+    {
+        var order = _orderStateStore.GetOrder(orderId);
+        if (order is null)
+        {
+            return NotFound(new { message = $"Order with ID '{orderId}' was not found." });
+        }
+        return Ok(order);
     }
 
     [HttpPost]
@@ -56,6 +72,8 @@ public class OrdersController : ControllerBase
             Items = items
         };
 
+        _orderStateStore.SaveOrder(response);
+
         var orderPlacedEvent = new OrderPlacedEvent(
             orderId,
             createOrderDto.CustomerId,
@@ -72,6 +90,6 @@ public class OrdersController : ControllerBase
 
         _logger.LogInformation("Published OrderPlacedEvent for OrderId {OrderId} with CorrelationId {CorrelationId}", orderId, correlationId);
 
-        return CreatedAtAction(nameof(Create), new { orderId }, response);
+        return CreatedAtAction(nameof(GetById), new { orderId }, response);
     }
 }
