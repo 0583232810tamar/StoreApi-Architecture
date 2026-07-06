@@ -1,4 +1,18 @@
 services:
+  mongodb:
+    image: mongo:7
+    container_name: productcatalog-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: storeapi-db
@@ -30,6 +44,22 @@ services:
       timeout: 5s
       retries: 5
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: storeapi-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
   api:
     build:
       context: .
@@ -47,6 +77,92 @@ services:
       redis:
         condition: service_healthy
 
+  product-catalog-service:
+    build:
+      context: .
+      dockerfile: Microservices/ProductCatalogService/Dockerfile
+    container_name: product-catalog-service
+    ports:
+      - "5210:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      MongoDbSettings__ConnectionString: "mongodb://mongodb:27017"
+      MongoDbSettings__DatabaseName: "productcatalogdb"
+      MongoDbSettings__ProductsCollectionName: "products"
+      MongoDbSettings__CategoriesCollectionName: "categories"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: Microservices/InventoryService/Dockerfile
+    container_name: inventory-service
+    ports:
+      - "5211:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+
+  order-service:
+    build:
+      context: .
+      dockerfile: Microservices/OrderService/Dockerfile
+    container_name: order-service
+    ports:
+      - "5212:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ConnectionStrings__RabbitMq: "rabbitmq"
+      RabbitMq__Username: "guest"
+      RabbitMq__Password: "guest"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: Microservices/NotificationService/Dockerfile
+    container_name: notification-service
+    ports:
+      - "5213:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Microservices/ApiGateway/Dockerfile
+    container_name: api-gateway
+    ports:
+      - "5200:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+    depends_on:
+      product-catalog-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+
+  bff-service:
+    build:
+      context: .
+      dockerfile: Microservices/BffService/Dockerfile
+    container_name: bff-service
+    ports:
+      - "5201:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      DownstreamServices__OrderServiceBaseUrl: "http://order-service:8080"
+      DownstreamServices__ProductCatalogServiceBaseUrl: "http://product-catalog-service:8080"
+    depends_on:
+      order-service:
+        condition: service_started
+      product-catalog-service:
+        condition: service_started
+
 volumes:
+  mongodb-data:
   sqlserver-data:
   redis-data:
