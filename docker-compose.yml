@@ -82,15 +82,17 @@ services:
     build:
       context: .
       dockerfile: Microservices/ProductCatalogService/Dockerfile
-    container_name: product-catalog-service
-    ports:
-      - "5210:8080"
+    # container_name הוסר מכאן בכוונה כדי לאפשר הרצת מספר רפליקות במקביל
+    # ports:
+    #   - "5210:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"
       MongoDbSettings__ConnectionString: "mongodb://mongodb:27017"
       MongoDbSettings__DatabaseName: "productcatalogdb"
       MongoDbSettings__ProductsCollectionName: "products"
       MongoDbSettings__CategoriesCollectionName: "categories"
+    deploy:
+      replicas: 2
     depends_on:
       mongodb:
         condition: service_healthy
@@ -155,8 +157,8 @@ services:
       - "5201:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"
-      DownstreamServices__OrderServiceBaseUrl: "http://order-service:8080"
-      DownstreamServices__ProductCatalogServiceBaseUrl: "http://product-catalog-service:8080"
+      DownstreamServices__OrderServiceBaseUrl: "http://order-service:8080/"
+      DownstreamServices__ProductCatalogServiceBaseUrl: "http://product-catalog-service:8080/"
     depends_on:
       order-service:
         condition: service_started

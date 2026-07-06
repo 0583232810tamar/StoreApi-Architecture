@@ -22,6 +22,8 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<IEnumerable<ProductCatalogResponseDto>>> GetAll(CancellationToken cancellationToken)
     {
         var products = await _productService.GetAllAsync(cancellationToken);
+        // Environment.MachineName בתוך קונטיינר מחזיר אוטומטית את ה-ID הקצר של הקונטיינר
+        Response.Headers.Append("X-Container-Id", Environment.MachineName);
         return Ok(products);
     }
 
@@ -35,7 +37,8 @@ public class ProductsController : ControllerBase
         {
             return NotFound(new { message = $"Product with ID '{id}' not found." });
         }
-
+        // Environment.MachineName בתוך קונטיינר מחזיר אוטומטית את ה-ID הקצר של הקונטיינר
+        Response.Headers.Append("X-Container-Id", Environment.MachineName);             
         return Ok(product);
     }
 
@@ -44,6 +47,8 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<IEnumerable<ProductCatalogResponseDto>>> GetByCategory(string categoryId, CancellationToken cancellationToken)
     {
         var products = await _productService.GetByCategoryAsync(categoryId, cancellationToken);
+        // Environment.MachineName בתוך קונטיינר מחזיר אוטומטית את ה-ID הקצר של הקונטיינר
+        Response.Headers.Append("X-Container-Id", Environment.MachineName); 
         return Ok(products);
     }
 
